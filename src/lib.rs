@@ -1,7 +1,10 @@
 #![allow(dead_code)]
 
-use reqwest::{Client, Error, Response};
+use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
+use reqwest::{Client, Response};
 use serde::Serialize;
+use std::error::Error;
+use std::path::PathBuf;
 
 pub struct FirebaseError {
     pub message: String,
@@ -37,7 +40,10 @@ impl Database {
         )
     }
 
-    fn parse_result(&self, result: Result<Response, Error>) -> Result<Response, FirebaseError> {
+    fn parse_result(
+        &self,
+        result: Result<Response, reqwest::Error>,
+    ) -> Result<Response, FirebaseError> {
         match result {
             Ok(response) => Ok(response),
             Err(e) => Err(FirebaseError::from_string(e.to_string())),
@@ -82,8 +88,22 @@ impl Database {
     }
 }
 
-pub fn init_database(project_id: String, token: &str) -> Database {
+pub fn create_database(project_id: String, token: &str) -> Database {
     let database = Database::new(project_id, token.to_string());
 
     database
+}
+
+pub async fn get_oauth_token() -> Result<Token, Box<dyn Error>> {
+    // `credentials_path` variable is the path for the credentials `.json` file.
+    let credentials_path = PathBuf::from("firebase-key.json");
+    let service_account = CustomServiceAccount::from_file(credentials_path)?;
+    let authentication_manager = AuthenticationManager::from(service_account);
+    let scopes = &[
+        "https://www.googleapis.com/auth/userinfo.email",
+        "https://www.googleapis.com/auth/firebase.database",
+    ];
+    let token = authentication_manager.get_token(scopes).await?;
+
+    Ok(token)
 }
