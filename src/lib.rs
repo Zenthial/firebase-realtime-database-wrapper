@@ -88,15 +88,15 @@ impl Database {
     }
 }
 
-pub fn create_database(project_id: String, token: &str) -> Database {
-    let database = Database::new(project_id, token.to_string());
+pub fn create_database(project_id: &str, token: &str) -> Database {
+    let database = Database::new(project_id.to_string(), token.to_string());
 
     database
 }
 
-pub async fn get_oauth_token() -> Result<Token, Box<dyn Error>> {
+pub async fn get_oauth_token(path: &str) -> Result<Token, Box<dyn Error>> {
     // `credentials_path` variable is the path for the credentials `.json` file.
-    let credentials_path = PathBuf::from("firebase-key.json");
+    let credentials_path = PathBuf::from(path);
     let service_account = CustomServiceAccount::from_file(credentials_path)?;
     let authentication_manager = AuthenticationManager::from(service_account);
     let scopes = &[
