@@ -117,7 +117,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "firebase"
+name = "firebase_realtime_database"
 version = "0.1.0"
 dependencies = [
  "gcp_auth",
