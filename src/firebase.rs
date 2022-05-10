@@ -1,4 +1,6 @@
-use reqwest::{Client, Response};
+#![allow(dead_code)]
+
+use reqwest::{Client, Error, Response};
 use serde::Serialize;
 
 pub struct FirebaseError {
@@ -35,13 +37,23 @@ impl Database {
         )
     }
 
-    pub async fn get(&self, path: &str) -> Result<Response, FirebaseError> {
-        let result = self.client.get(self.get_url(path)).send().await;
-
+    fn parse_result(&self, result: Result<Response, Error>) -> Result<Response, FirebaseError> {
         match result {
             Ok(response) => Ok(response),
             Err(e) => Err(FirebaseError::from_string(e.to_string())),
         }
+    }
+
+    pub async fn get(&self, path: &str) -> Result<Response, FirebaseError> {
+        let result = self.client.get(self.get_url(path)).send().await;
+
+        self.parse_result(result)
+    }
+
+    pub async fn delete(&self, path: &str) -> Result<Response, FirebaseError> {
+        let result = self.client.delete(self.get_url(path)).send().await;
+
+        self.parse_result(result)
     }
 
     pub async fn put<T: Serialize + ?Sized>(
@@ -51,10 +63,7 @@ impl Database {
     ) -> Result<Response, FirebaseError> {
         let result = self.client.put(self.get_url(path)).json(body).send().await;
 
-        match result {
-            Ok(response) => Ok(response),
-            Err(e) => Err(FirebaseError::from_string(e.to_string())),
-        }
+        self.parse_result(result)
     }
 
     pub async fn update<T: Serialize + ?Sized>(
@@ -69,10 +78,7 @@ impl Database {
             .send()
             .await;
 
-        match result {
-            Ok(response) => Ok(response),
-            Err(e) => Err(FirebaseError::from_string(e.to_string())),
-        }
+        self.parse_result(result)
     }
 }
 

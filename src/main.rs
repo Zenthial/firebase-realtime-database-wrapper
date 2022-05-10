@@ -1,9 +1,9 @@
 mod auth;
+mod firebase;
+
 use std::collections::HashMap;
 
 use auth::get_token;
-
-mod firebase;
 use firebase::init_database;
 
 #[tokio::main]
@@ -25,7 +25,7 @@ async fn main() {
 
         let put_result = database
             .put(
-                "users/joe",
+                "users/joe2",
                 &HashMap::from([("first_name", "Joe"), ("last_name", "Mama")]),
             )
             .await;
@@ -44,6 +44,17 @@ async fn main() {
             .await;
 
         match update_result {
+            Ok(response) => {
+                println!("{}", response.text().await.unwrap());
+            }
+            Err(e) => {
+                panic!("{}", e.message);
+            }
+        }
+
+        let delete_result = database.delete("users/joe2").await;
+
+        match delete_result {
             Ok(response) => {
                 println!("{}", response.text().await.unwrap());
             }
