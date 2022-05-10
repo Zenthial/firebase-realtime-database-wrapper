@@ -16,6 +16,7 @@ impl FirebaseError {
     }
 }
 
+#[derive(Clone)]
 pub struct Database {
     project_id: String,
     access_token: String,
