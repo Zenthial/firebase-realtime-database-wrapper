@@ -32,4 +32,4 @@ let update_result = database
 let delete_result = database.delete("users/joe2").await?;
 ```
 
-Where each method returns a result of reqwest::Response and FirebaseError. FirebaseError contains just a message field that contains the error message.
+Where each method takes a path. Put, Update and Delete take in Serializable data. All methods return a result of reqwest::Response and FirebaseError. FirebaseError contains just a message field that contains the error message.
