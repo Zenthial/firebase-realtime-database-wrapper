@@ -73,6 +73,16 @@ impl Database {
         self.parse_result(result)
     }
 
+    pub async fn post<T: Serialize + ?Sized>(
+        &self,
+        path: &str,
+        body: &T,
+    ) -> Result<Response, FirebaseError> {
+        let result = self.client.post(self.get_url(path)).json(body).send().await;
+
+        self.parse_result(result)
+    }
+
     pub async fn update<T: Serialize + ?Sized>(
         &self,
         path: &str,
