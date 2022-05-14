@@ -2,10 +2,11 @@
 
 use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
 use reqwest::{Client, Response};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::path::PathBuf;
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FirebaseError {
     pub message: String,
 }
@@ -16,7 +17,7 @@ impl FirebaseError {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Database {
     project_id: String,
     access_token: String,
