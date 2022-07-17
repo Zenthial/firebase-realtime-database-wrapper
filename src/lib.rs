@@ -35,6 +35,10 @@ impl Database {
         }
     }
 
+    fn set_token(&mut self, token: String) {
+        self.access_token = token;
+    }
+
     fn get_url(&self, path: &str) -> String {
         format!(
             "https://{}.firebaseio.com/{}.json?access_token={}",
