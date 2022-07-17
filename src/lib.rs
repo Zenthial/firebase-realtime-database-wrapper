@@ -35,7 +35,7 @@ impl Database {
         }
     }
 
-    fn set_token(&mut self, token: String) {
+    pub fn set_token(&mut self, token: String) {
         self.access_token = token;
     }
 
