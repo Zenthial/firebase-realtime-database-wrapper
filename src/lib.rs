@@ -104,6 +104,8 @@ impl Database {
     }
 }
 
+unsafe impl Send for Database {}
+
 pub fn create_database(project_id: &str, token: &str) -> Database {
     let database = Database::new(project_id.to_string(), token.to_string());
 
