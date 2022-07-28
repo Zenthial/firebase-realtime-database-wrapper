@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 
 use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
+use reqwest::header::{HeaderMap, CONNECTION};
 use reqwest::{Client, Response};
 use serde::{Deserialize, Serialize};
 use std::error::Error;
@@ -56,14 +57,31 @@ impl Database {
         }
     }
 
+    fn get_header_map(&self) -> HeaderMap {
+        let mut header_map = HeaderMap::new();
+        header_map.insert(CONNECTION, "close".parse().unwrap());
+
+        header_map
+    }
+
     pub async fn get(&self, path: &str) -> Result<Response, FirebaseError> {
-        let result = self.client.get(self.get_url(path)).send().await;
+        let result = self
+            .client
+            .get(self.get_url(path))
+            .headers(self.get_header_map())
+            .send()
+            .await;
 
         self.parse_result(result)
     }
 
     pub async fn delete(&self, path: &str) -> Result<Response, FirebaseError> {
-        let result = self.client.delete(self.get_url(path)).send().await;
+        let result = self
+            .client
+            .delete(self.get_url(path))
+            .headers(self.get_header_map())
+            .send()
+            .await;
 
         self.parse_result(result)
     }
@@ -73,7 +91,13 @@ impl Database {
         path: &str,
         body: &T,
     ) -> Result<Response, FirebaseError> {
-        let result = self.client.put(self.get_url(path)).json(body).send().await;
+        let result = self
+            .client
+            .put(self.get_url(path))
+            .headers(self.get_header_map())
+            .json(body)
+            .send()
+            .await;
 
         self.parse_result(result)
     }
@@ -83,7 +107,13 @@ impl Database {
         path: &str,
         body: &T,
     ) -> Result<Response, FirebaseError> {
-        let result = self.client.post(self.get_url(path)).json(body).send().await;
+        let result = self
+            .client
+            .post(self.get_url(path))
+            .headers(self.get_header_map())
+            .json(body)
+            .send()
+            .await;
 
         self.parse_result(result)
     }
@@ -96,6 +126,7 @@ impl Database {
         let result = self
             .client
             .patch(self.get_url(path))
+            .headers(self.get_header_map())
             .json(body)
             .send()
             .await;
