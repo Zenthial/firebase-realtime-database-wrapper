@@ -1,50 +1,67 @@
 #![allow(dead_code)]
 
-use gcp_auth::{AuthenticationManager, CustomServiceAccount, Token};
+use gcp_auth::{AuthenticationManager, CustomServiceAccount};
 use reqwest::header::{HeaderMap, CONNECTION};
 use reqwest::{Client, Response};
-use serde::{Deserialize, Serialize};
-use std::error::Error;
+use serde::Serialize;
 use std::path::PathBuf;
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct FirebaseError {
-    pub message: String,
+const SCOPES: &[&str] = &[
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/firebase.database",
+];
+
+#[derive(Debug)]
+pub enum FirebaseError {
+    GcpAuthError(gcp_auth::Error),
+    ReqwestError(reqwest::Error),
 }
 
-impl FirebaseError {
-    fn from_string(message: String) -> FirebaseError {
-        FirebaseError { message }
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct Database {
     project_id: String,
-    access_token: String,
+    manager: AuthenticationManager,
     client: Client,
 }
 
 impl Database {
-    fn new(project_id: String, access_token: String) -> Database {
+    pub fn new(project_id: String, manager: AuthenticationManager) -> Self {
         let client = Client::new();
 
         Database {
             project_id,
-            access_token,
+            manager,
             client,
         }
     }
 
-    pub fn set_token(&mut self, token: String) {
-        self.access_token = token;
+    pub fn from_path(project_id: String, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+        // `credentials_path` variable is the path for the credentials `.json` file.
+        let credentials_path = PathBuf::from(path);
+        let service_account = CustomServiceAccount::from_file(credentials_path)?;
+        let authentication_manager = AuthenticationManager::from(service_account);
+
+        Ok(Self::new(project_id, authentication_manager))
     }
 
-    fn get_url(&self, path: &str) -> String {
-        format!(
-            "https://{}.firebaseio.com/{}.json?access_token={}",
-            self.project_id, path, self.access_token
-        )
+    async fn get_token(&self) -> Result<String, FirebaseError> {
+        let token_result = self.manager.get_token(SCOPES).await;
+
+        match token_result {
+            Ok(token) => Ok(token.as_str().to_string()),
+            Err(e) => Err(FirebaseError::GcpAuthError(e)),
+        }
+    }
+
+    async fn get_url(&self, path: &str) -> Result<String, FirebaseError> {
+        let token = self.get_token().await;
+
+        match token {
+            Ok(tok) => Ok(format!(
+                "https://{}.firebaseio.com/{}.json?access_token={}",
+                self.project_id, path, tok
+            )),
+            Err(e) => Err(e),
+        }
     }
 
     fn parse_result(
@@ -53,7 +70,7 @@ impl Database {
     ) -> Result<Response, FirebaseError> {
         match result {
             Ok(response) => Ok(response),
-            Err(e) => Err(FirebaseError::from_string(e.to_string())),
+            Err(e) => Err(FirebaseError::ReqwestError(e)),
         }
     }
 
@@ -65,25 +82,39 @@ impl Database {
     }
 
     pub async fn get(&self, path: &str) -> Result<Response, FirebaseError> {
-        let result = self
-            .client
-            .get(self.get_url(path))
-            .headers(self.get_header_map())
-            .send()
-            .await;
+        let url_result = self.get_url(path).await;
 
-        self.parse_result(result)
+        match url_result {
+            Ok(url) => {
+                let result = self
+                    .client
+                    .get(url)
+                    .headers(self.get_header_map())
+                    .send()
+                    .await;
+
+                self.parse_result(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn delete(&self, path: &str) -> Result<Response, FirebaseError> {
-        let result = self
-            .client
-            .delete(self.get_url(path))
-            .headers(self.get_header_map())
-            .send()
-            .await;
+        let url_result = self.get_url(path).await;
 
-        self.parse_result(result)
+        match url_result {
+            Ok(url) => {
+                let result = self
+                    .client
+                    .delete(url)
+                    .headers(self.get_header_map())
+                    .send()
+                    .await;
+
+                self.parse_result(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn put<T: Serialize + ?Sized>(
@@ -91,15 +122,22 @@ impl Database {
         path: &str,
         body: &T,
     ) -> Result<Response, FirebaseError> {
-        let result = self
-            .client
-            .put(self.get_url(path))
-            .headers(self.get_header_map())
-            .json(body)
-            .send()
-            .await;
+        let url_result = self.get_url(path).await;
 
-        self.parse_result(result)
+        match url_result {
+            Ok(url) => {
+                let result = self
+                    .client
+                    .put(url)
+                    .headers(self.get_header_map())
+                    .json(body)
+                    .send()
+                    .await;
+
+                self.parse_result(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn post<T: Serialize + ?Sized>(
@@ -107,15 +145,22 @@ impl Database {
         path: &str,
         body: &T,
     ) -> Result<Response, FirebaseError> {
-        let result = self
-            .client
-            .post(self.get_url(path))
-            .headers(self.get_header_map())
-            .json(body)
-            .send()
-            .await;
+        let url_result = self.get_url(path).await;
 
-        self.parse_result(result)
+        match url_result {
+            Ok(url) => {
+                let result = self
+                    .client
+                    .post(url)
+                    .headers(self.get_header_map())
+                    .json(body)
+                    .send()
+                    .await;
+
+                self.parse_result(result)
+            }
+            Err(e) => Err(e),
+        }
     }
 
     pub async fn update<T: Serialize + ?Sized>(
@@ -123,36 +168,21 @@ impl Database {
         path: &str,
         body: &T,
     ) -> Result<Response, FirebaseError> {
-        let result = self
-            .client
-            .patch(self.get_url(path))
-            .headers(self.get_header_map())
-            .json(body)
-            .send()
-            .await;
+        let url_result = self.get_url(path).await;
 
-        self.parse_result(result)
+        match url_result {
+            Ok(url) => {
+                let result = self
+                    .client
+                    .patch(url)
+                    .headers(self.get_header_map())
+                    .json(body)
+                    .send()
+                    .await;
+
+                self.parse_result(result)
+            }
+            Err(e) => Err(e),
+        }
     }
-}
-
-unsafe impl Send for Database {}
-
-pub fn create_database(project_id: &str, token: &str) -> Database {
-    let database = Database::new(project_id.to_string(), token.to_string());
-
-    database
-}
-
-pub async fn get_oauth_token(path: &str) -> Result<Token, Box<dyn Error>> {
-    // `credentials_path` variable is the path for the credentials `.json` file.
-    let credentials_path = PathBuf::from(path);
-    let service_account = CustomServiceAccount::from_file(credentials_path)?;
-    let authentication_manager = AuthenticationManager::from(service_account);
-    let scopes = &[
-        "https://www.googleapis.com/auth/userinfo.email",
-        "https://www.googleapis.com/auth/firebase.database",
-    ];
-    let token = authentication_manager.get_token(scopes).await?;
-
-    Ok(token)
 }
