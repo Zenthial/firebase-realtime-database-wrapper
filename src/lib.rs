@@ -186,3 +186,5 @@ impl Database {
         }
     }
 }
+
+unsafe impl Send for Database {}
