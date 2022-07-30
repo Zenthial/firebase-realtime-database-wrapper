@@ -34,7 +34,7 @@ impl Database {
         }
     }
 
-    pub fn from_path(project_id: &str, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_path(project_id: &str, path: &str) -> Result<Self, gcp_auth::Error> {
         // `credentials_path` variable is the path for the credentials `.json` file.
         let credentials_path = PathBuf::from(path);
         let service_account = CustomServiceAccount::from_file(credentials_path)?;
