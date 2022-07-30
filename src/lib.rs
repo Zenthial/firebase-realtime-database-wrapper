@@ -24,17 +24,17 @@ pub struct Database {
 }
 
 impl Database {
-    pub fn new(project_id: String, manager: AuthenticationManager) -> Self {
+    pub fn new(project_id: &str, manager: AuthenticationManager) -> Self {
         let client = Client::new();
 
         Database {
-            project_id,
+            project_id: project_id.to_string(),
             manager,
             client,
         }
     }
 
-    pub fn from_path(project_id: String, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn from_path(project_id: &str, path: &str) -> Result<Self, Box<dyn std::error::Error>> {
         // `credentials_path` variable is the path for the credentials `.json` file.
         let credentials_path = PathBuf::from(path);
         let service_account = CustomServiceAccount::from_file(credentials_path)?;
