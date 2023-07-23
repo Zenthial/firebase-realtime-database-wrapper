@@ -52,6 +52,14 @@ impl Database {
         Ok(Self::new(project_id, authentication_manager))
     }
 
+    pub fn from_json(project_id: &str, file_json: &str) -> Result<Self, gcp_auth::Error> {
+        // `credentials_path` variable is the path for the credentials `.json` file.
+        let service_account = CustomServiceAccount::from_json(file_json)?;
+        let authentication_manager = AuthenticationManager::from(service_account);
+
+        Ok(Self::new(project_id, authentication_manager))
+    }
+
     async fn get_token(&self) -> Result<String, FirebaseError> {
         let token_result = self.manager.get_token(SCOPES).await;
 
