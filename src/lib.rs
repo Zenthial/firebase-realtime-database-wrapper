@@ -17,6 +17,15 @@ pub enum FirebaseError {
     ReqwestError(reqwest::Error),
 }
 
+impl ToString for FirebaseError {
+    fn to_string(&self) -> String {
+        match self {
+            FirebaseError::GcpAuthError(e) => e.to_string(),
+            FirebaseError::ReqwestError(e) => e.to_string(),
+        }
+    }
+}
+
 pub struct Database {
     project_id: String,
     manager: AuthenticationManager,

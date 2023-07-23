@@ -1,20 +1,15 @@
 # Firebase Realtime Database Wrapper
 A basic abstraction over the Firebase Web API.
 
-To begin, create your OAuth token by passing the path to your service account token file.
+To begin, create a Database struct by passing the path to your service account token file, and your project id"
 
 ```rs
-use firebase_realtime_database::*;
+use firebase_realtime_database::Database;
 
-let token = get_oauth_token("path/to/token/file.json").await?;
+let database = Database::from_path("project-id", "path/to/token/file.json").await?;
 ```
 
-With that token, we create a database with the realtime database name and that token
-```rs
-let database = create_database("database-name-default-rtdb", token.as_str());
-```
-
-Finally, the database exposes four methods to interact with the database
+The database exposes four methods to interact with the database
 ```rs
 let get_result = database.get("users/tom").await?;
 

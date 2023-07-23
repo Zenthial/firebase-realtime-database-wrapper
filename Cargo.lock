@@ -109,7 +109,7 @@ dependencies = [
 
 [[package]]
 name = "firebase_realtime_database"
-version = "0.2.12"
+version = "0.3.0"
 dependencies = [
  "gcp_auth",
  "reqwest",
